@@ -319,10 +319,6 @@ def simulate(growth_genotypes, state_genotypes, num_layers, base_layer, around_s
     # Each individual has a genotype that consists of an activation function
     # and a set of neighbor weights for each layer in the hierarchical CA.
 
-    # assert growth_genotypes.shape == (pop_size, num_layers, NUM_INPUT_NEURONS, NUM_OUTPUT_NEURONS)
-    
-    # assert genotypes.dtype == np.uint8
-
     assert type(num_layers) is int
     assert num_layers in range(1, NUM_LAYERS + 1)
 
@@ -354,120 +350,8 @@ def simulate(growth_genotypes, state_genotypes, num_layers, base_layer, around_s
         )
         out_phenotypes.append(out_phenotype)
 
-    # Layer1 in all phenotypes from all steps of the simulation has a
-    # granularity of 2x2.
-    # if out_phenotypes.shape[2] > 1:
-    #     assert all(check_granularity(2, p)
-    #             for p in np.reshape(
-    #                 phenotypes[:, :, 1], (-1, WORLD_SIZE, WORLD_SIZE))) 
-
-    # Layer2 in all phenotypes from all steps of the simulation has a
-    # granularity of 4x4.
-    # if out_phenotypes.shape[2] > 2:
-    #     assert all(check_granularity(4, p)
-    #             for p in np.reshape(
-    #                 phenotypes[:, :, 2], (-1, WORLD_SIZE, WORLD_SIZE)))
-
     return out_phenotypes
 
-
-def simulate_parallel(growth_genotypes, state_genotypes, num_layers, base_layer, around_start, above_start, use_growth, phenotypes, activation, below_map, above_map):
-    """Simulate genotypes and return phenotype videos."""
-
-    # Infer population size from genotypes
-    pop_size = growth_genotypes.shape[0]
-    print(growth_genotypes.shape)
-
-    # Each individual has a genotype that consists of an activation function
-    # and a set of neighbor weights for each layer in the hierarchical CA.
-
-    # assert growth_genotypes.shape == (pop_size, num_layers, NUM_INPUT_NEURONS, NUM_OUTPUT_NEURONS)
-    
-    # assert genotypes.dtype == np.uint8
-
-    assert type(num_layers) is int
-    assert num_layers in range(1, NUM_LAYERS + 1)
-
-    assert type(use_growth) is bool
-    assert type(activation) is int
-
-    # assert phenotypes.shape == (pop_size, NUM_STEPS, num_layers, WORLD_SIZE, WORLD_SIZE)
-    # assert phenotypes.shape[0] == growth_genotypes.shape[0] == state_genotypes.shape[0] == pop_size
-    print(pop_size, len(phenotypes))
-    assert len(phenotypes) == pop_size
-    
-    print(above_map.shape)
-    print(num_layers)
-    assert above_map.shape == (num_layers, 3)
-    assert below_map.shape == (num_layers, 4, 3)
-
-    out_phenotypes = []
-
-    # Define a function to be executed in a thread
-    def task(solution_id):
-        return run_simulation(
-            growth_genotypes[solution_id],
-            state_genotypes[solution_id],
-            phenotypes[solution_id],
-            num_layers,
-            base_layer,
-            around_start,
-            above_start,
-            use_growth,
-            activation,
-            below_map,
-            above_map
-        )
-
-    # for solution_id in range(pop_size):
-    #     out_phenotype = run_simulation(
-    #         growth_genotypes[solution_id],
-    #         state_genotypes[solution_id],
-    #         phenotypes[solution_id],
-    #         num_layers,
-    #         base_layer,
-    #         around_start,
-    #         above_start,
-    #         use_growth,
-    #         activation,
-    #         below_map,
-    #         above_map
-    #     )
-    #     out_phenotypes.append(out_phenotype)
-
-    # Use ThreadPoolExecutor to run simulations in parallel
-    with ThreadPoolExecutor(max_workers=None) as executor:
-        # Schedule the tasks and retrieve futures
-        futures = [executor.submit(task, solution_id) for solution_id in range(pop_size)]
-        
-        # Wait for the futures to complete and collect results
-        for future in as_completed(futures):
-            out_phenotypes.append(future.result())
-
-        # Use ProcessPoolExecutor to run simulations in parallel across multiple cores
-    # with ProcessPoolExecutor(max_workers=None) as executor:
-    #     # Schedule the tasks and retrieve futures
-    #     futures = [executor.submit(task, solution_id) for solution_id in range(pop_size)]
-        
-    #     # Wait for the futures to complete and collect results
-    #     for future in as_completed(futures):
-    #         out_phenotypes.append(future.result())
-
-    # Layer1 in all phenotypes from all steps of the simulation has a
-    # granularity of 2x2.
-    # if out_phenotypes.shape[2] > 1:
-    #     assert all(check_granularity(2, p)
-    #             for p in np.reshape(
-    #                 phenotypes[:, :, 1], (-1, WORLD_SIZE, WORLD_SIZE))) 
-
-    # Layer2 in all phenotypes from all steps of the simulation has a
-    # granularity of 4x4.
-    # if out_phenotypes.shape[2] > 2:
-    #     assert all(check_granularity(4, p)
-    #             for p in np.reshape(
-    #                 phenotypes[:, :, 2], (-1, WORLD_SIZE, WORLD_SIZE)))
-
-    return out_phenotypes
 
 def make_seed_phenotypes(pop_size, n_layers=3):
     """Starting phenotypes to use by default (one ALIVE cell in middle)."""
