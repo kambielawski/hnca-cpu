@@ -360,9 +360,9 @@ class AgeFitnessPareto:
             target = create_hollow_circle(target_size)
 
         # Upsize back to 64x64 because that's how we're comparing 
-        while target.shape[0] < 64: 
-            target = np.repeat(np.repeat(target, 2, axis=0), 2, axis=1)
-        assert target.shape[0] == 64
+        # while target.shape[0] < 64: 
+        #     target = np.repeat(np.repeat(target, 2, axis=0), 2, axis=1)
+        # assert target.shape[0] == 64
 
         return target
         
@@ -372,9 +372,7 @@ class AgeFitnessPareto:
         target = self.get_target_shape()
 
         # Infer pop_size from phenotypes
-        pop_size = phenotypes.shape[0]
-        # All phenotypes and the target image are WORLD_SIZE x WORLD_SIZE squares.
-        assert phenotypes.shape == (pop_size, NUM_STEPS, self.n_layers, WORLD_SIZE, WORLD_SIZE)
+        pop_size = len(phenotypes)
 
         # Allocate space for results.
         fitness_scores = np.zeros(pop_size, dtype=np.uint32)
@@ -384,12 +382,11 @@ class AgeFitnessPareto:
             # Look at just the final state of the layer0 part of the phenotype.
             # Compare it to the target image, and sum up the deltas to get the
             # final fitness score (lower is better, 0 is a perfect score).
-            fitness_scores[i] = np.sum(np.abs(target - (phenotypes[i][-1][self.base_layer] > 0)))
+            fitness_scores[i] = np.sum(np.abs(target - (phenotypes[i][self.base_layer][-1] > 0)))
 
         return fitness_scores
 
 
-    # @functools.cache
     def make_seed_phenotypes(self, n):
         """Starting phenotypes to use by default (one ALIVE cell in middle)."""
         # For each inidividual, capture phenotype development over NUM_STEPS. Each
@@ -398,17 +395,17 @@ class AgeFitnessPareto:
         # represent a sort of hierarchical internal state for the organism. Layers
         # 1 and 2 are conceptually smaller than layer0 (1/4 and 1/8 respectively),
         # but are represented using arrays of the same size for simplicity.
-        phenotypes = np.full(
-            (n, NUM_STEPS, self.n_layers, WORLD_SIZE, WORLD_SIZE),
-            DEAD, dtype=np.float32)
-        
-        middle_start = WORLD_SIZE // 2
-        middle_end = middle_start + self.layers[self.base_layer]['res']
-
-        # Use a single ALIVE pixel in the middle of the CA world as the initial
-        # phenotype state for all individuals in the population.
-        for i in range(n):
-            phenotypes[i][0][self.base_layer][middle_start:middle_end, middle_start:middle_end] = ALIVE
+        phenotypes = []
+        for _ in range(n):
+            phenotype = []
+            g = WORLD_SIZE 
+            for l in range(self.n_layers):
+                layer = np.zeros((NUM_STEPS,g,g))
+                phenotype.append(layer)
+                if l == self.base_layer:
+                    phenotype[self.base_layer][0,g//2,g//2] = ALIVE
+                g = g // 2
+            phenotypes.append(phenotype)
 
         return phenotypes
     
