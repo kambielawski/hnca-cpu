@@ -3,25 +3,45 @@ import argparse
 import pickle
 import time
 import numpy as np
-from simulation import simulate, make_seed_phenotypes
+from simulation_cpu import simulate
 from afpo import AgeFitnessPareto, activation2int, Solution
 
 # Parse command line arguments
-parser = argparse.ArgumentParser()
-parser.add_argument('params_file', type=str, help='Parameters file')
-args = parser.parse_args()
+# parser = argparse.ArgumentParser()
+# parser.add_argument('params_file', type=str, help='Parameters file')
+# args = parser.parse_args()
 
-# Read the experiment file into exp_arms variable
-params_file = open(args.params_file)
-params_string = params_file.read()
-params = eval(params_string)
-params_file.close()
+# # Read the experiment file into exp_arms variable
+# params_file = open(args.params_file)
+# params_string = params_file.read()
+# params = eval(params_string)
+# params_file.close()
+
+params = {
+    'optimizer': 'afpo',
+    'num_trials': 20,
+    'target_population_size': 100,
+    'max_generations': 2000,
+    'state_or_growth': None,
+    'neighbor_map_type': 'random',
+    'mutate_layers': None,
+    'sim_steps': 100,
+    'shape': 'square',
+    'layers': [
+        {'res': 1},
+        {'res': 2},
+        {'res': 4},
+        {'res': 8, 'base': True},
+    ],
+    'use_growth': True,
+    'activation': 'sigmoid'
+  }
 
 base_layer = next((i for i, d in enumerate(params['layers']) if d.get('base', False)), None)
 n_layers = len(params['layers'])
 
-N_TOTAL = 1000000
-BATCH_SIZE = 500
+N_TOTAL = 100000
+BATCH_SIZE = 100
 N_BATCHES = N_TOTAL // BATCH_SIZE
 
 parent_child_distance = np.zeros(N_TOTAL)
@@ -34,7 +54,7 @@ for batch_idx in range(N_BATCHES):
     afpo = AgeFitnessPareto(params)
 
     # Make parents
-    parent_population = [Solution(layers=params['layers']) for _ in range(BATCH_SIZE)]
+    parent_population = [Solution(layers=params['layers'], id=afpo.get_available_id()) for _ in range(BATCH_SIZE)]
     parent_unsimulated_growth_genotypes = np.array([sol.growth_genotype for sol in parent_population])
     parent_unsimulated_state_genotypes = np.array([sol.state_genotype for sol in parent_population])
     seed_phenotypes = afpo.make_seed_phenotypes(BATCH_SIZE)
@@ -49,13 +69,15 @@ for batch_idx in range(N_BATCHES):
         parent_population[0].above_start, 
         params['use_growth'], 
         seed_phenotypes, 
-        activation2int[params['activation']])
+        activation2int[params['activation']],
+        afpo.below_map,
+        afpo.above_map)
     
-    parents_binarized_phenotypes = (phenotypes[:, -1, afpo.base_layer] > 0)
+    parents_binarized_phenotypes = [solution[base_layer][-1] > 0 for solution in phenotypes]
     parents_fitness = afpo.evaluate_phenotypes(phenotypes)
 
     # Mutate and get BATCH_SIZE children
-    children_population = [solution.make_offspring() for solution in parent_population]
+    children_population = [solution.make_offspring(new_id=afpo.get_available_id()) for solution in parent_population]
     children_unsimulated_growth_genotypes = np.array([sol.growth_genotype for sol in children_population])
     children_unsimulated_state_genotypes = np.array([sol.state_genotype for sol in children_population])
 
@@ -69,24 +91,25 @@ for batch_idx in range(N_BATCHES):
         children_population[0].above_start, 
         params['use_growth'], 
         seed_phenotypes, 
-        activation2int[params['activation']])
+        activation2int[params['activation']],
+        afpo.below_map,
+        afpo.above_map)
     
-    children_binarized_phenotypes = (phenotypes[:, -1, afpo.base_layer] > 0)
+    children_binarized_phenotypes = [solution[base_layer][-1] > 0 for solution in phenotypes]
     children_fitness = afpo.evaluate_phenotypes(phenotypes)
 
-    assert children_fitness.shape == (BATCH_SIZE, )
+    # assert children_fitness.shape == (BATCH_SIZE, )
 
     # Compare binarized phenotypes of children and parents
     for i in range(BATCH_SIZE):
         parent_child_fitness_pairs[batch_idx*BATCH_SIZE + i] = (parents_fitness[i], children_fitness[i])
-
         parent_child_distance[batch_idx*BATCH_SIZE + i] = np.count_nonzero(parents_binarized_phenotypes[i] == children_binarized_phenotypes[i])
         
     batch_exec_time = time.time() - start
 
     print(f'Batch {batch_idx+1}/{N_BATCHES} took {batch_exec_time:.2f} seconds')
 
-i=150
+i=10
 print(parents_fitness[i], children_fitness[i])
 print(parents_binarized_phenotypes[i].shape)
 print(parents_binarized_phenotypes[i])
