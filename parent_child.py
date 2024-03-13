@@ -103,13 +103,13 @@ for batch_idx in range(N_BATCHES):
     # Compare binarized phenotypes of children and parents
     for i in range(BATCH_SIZE):
         parent_child_fitness_pairs[batch_idx*BATCH_SIZE + i] = (parents_fitness[i], children_fitness[i])
-        parent_child_distance[batch_idx*BATCH_SIZE + i] = np.count_nonzero(parents_binarized_phenotypes[i] == children_binarized_phenotypes[i])
+        parent_child_distance[batch_idx*BATCH_SIZE + i] = np.count_nonzero(parents_binarized_phenotypes[i] != children_binarized_phenotypes[i])
         
     batch_exec_time = time.time() - start
 
     print(f'Batch {batch_idx+1}/{N_BATCHES} took {batch_exec_time:.2f} seconds')
 
-i=10
+i=2
 print(parents_fitness[i], children_fitness[i])
 print(parents_binarized_phenotypes[i].shape)
 print(parents_binarized_phenotypes[i])
@@ -120,6 +120,8 @@ print(sum([pair[0] == pair[1] for pair in parent_child_fitness_pairs]))
 
 print(parent_unsimulated_state_genotypes[i])
 print(children_unsimulated_state_genotypes[i])
+
+print([parent_child_distance[i] for i in range(100)])
 
 date_and_time = time.strftime('%Y-%m-%d_%H-%M-%S')
 
