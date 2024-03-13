@@ -112,7 +112,7 @@ for batch_idx in range(N_BATCHES):
     # Compare binarized phenotypes of children and parents
     for i in range(BATCH_SIZE):
         parent_child_fitness_pairs[batch_idx*BATCH_SIZE + i] = (parents_fitness[i], children_fitness[i])
-        parent_child_distance[batch_idx*BATCH_SIZE + i] = np.count_nonzero(parents_binarized_phenotypes[i] == children_binarized_phenotypes[i])
+        parent_child_distance[batch_idx*BATCH_SIZE + i] = np.count_nonzero(parents_binarized_phenotypes[i] != children_binarized_phenotypes[i])
         parent_child_mutation_kind[batch_idx*BATCH_SIZE + i] = children_population[i].mutation_info['kind']
         
     batch_exec_time = time.time() - start
