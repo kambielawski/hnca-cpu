@@ -42,6 +42,7 @@ class HillClimber:
         self.parent_child_distance_history = []
         self.n_neutral_over_generations = []
         self.mutation_data_over_generations = []
+        self.mutation_layers_over_generations = []
 
     def evolve(self):
         self.initialize_population()
@@ -96,7 +97,7 @@ class HillClimber:
         # Reduce the population by selecting parent or child to remove
         n_neutral_children = self.select()
         # Extend the population using tournament selection
-        mutation_data = self.mutate_population()
+        mutation_data, mutation_layers = self.mutate_population()
 
         print(mutation_data)
         print('Average fitness:',
@@ -118,6 +119,7 @@ class HillClimber:
         self.best_fitness_history.append(self.best_solution())
         self.mean_fitness_history.append(np.mean([sol.fitness for id, sol in self.parent_population.items()]))
         self.parent_child_distance_history.append(parent_child_distances)
+        self.mutation_layers_over_generations.append(mutation_layers)
 
 
     def initialize_population(self):
@@ -164,7 +166,9 @@ class HillClimber:
             'kind': dict(Counter([mutation_info['kind'] for mutation_info in mutation_data])),
             'layer': dict(Counter([mutation_info['layer'] for mutation_info in mutation_data])),
         }
-        return aggregate_mutation_data
+        mutation_layers = [mutation_info['layer'] for mutation_info in mutation_data]
+
+        return aggregate_mutation_data, mutation_layers
 
 
     def get_unsimulated_genotypes(self):
