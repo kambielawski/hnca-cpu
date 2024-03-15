@@ -82,6 +82,7 @@ class Solution:
             kind = 'above'
         else:
             kind = None
+
         self.mutation_info = {'type': state_or_growth, 'kind': kind, 'layer': layer, 'rc': (layer if state_or_growth == 'state' else r, c)}
         
 
@@ -133,7 +134,8 @@ class Solution:
 
     def get_layer_state_indices(self, l):
         n_above = 0 if l == (self.n_layers-1) else 1
-        n_below = 0 if l == 0 else int((self.layers[l]['res'] / self.layers[l-1]['res'])**2)
+        # n_below = 0 if l == 0 else int((self.layers[l]['res'] / self.layers[l-1]['res'])**2)
+        n_below = 4
         n_around = 9 # Moore neighborhood
 
         # below, around, above
@@ -177,23 +179,6 @@ class Solution:
         self.state_n_weights = np.count_nonzero(self.state_genotype)
         self.growth_n_weights = np.count_nonzero(self.growth_genotype)
         self.total_weights = self.state_n_weights + self.growth_n_weights
-
-
-    def randomize_growth_genome(self):
-        size = self.get_layer_n_params(self.base_layer)
-        self.growth_genotype = np.random.random((size, 4)).astype(np.float32) * 2 - 1 # 4 for up,down,left,right spread
-
-    def randomize_state_genome(self):
-        self.state_genotype = np.random.random((self.n_layers, max([self.get_layer_n_params(l) for l in range(self.n_layers)]))).astype(np.float32) * 2 - 1
-        self.state_genotype_mask = np.zeros_like(self.state_genotype)
-        for l in range(self.n_layers):
-            below_index_range, neighborhood_index_range, above_index_range = self.get_layer_state_indices(l)
-            print(l, below_index_range, neighborhood_index_range, above_index_range)
-            self.state_genotype_mask[l, below_index_range[0]:below_index_range[1]] = 1
-            self.state_genotype_mask[l, neighborhood_index_range[0]:neighborhood_index_range[1]] = 1
-            self.state_genotype_mask[l, above_index_range[0]:above_index_range[1]] = 1
-
-        self.state_genotype *= self.state_genotype_mask
 
 
 class AgeFitnessPareto:
